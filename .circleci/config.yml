@@ -245,7 +245,9 @@ jobs:
       # Build your Java application
       - run:
           name: Build
-          command: mvn clean install
+          command: 
+            yum install -y maven
+            mvn clean install
 
       # Deploy to EC2 using CloudFormation
       - run:
