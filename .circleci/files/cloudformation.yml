@@ -11,6 +11,7 @@ Resources:
           yum update -y
           amazon-linux-extras enable corretto
           yum install -y java-17-amazon-corretto
+          yum install -y maven
 
           # Download and run your Java application
           wget -O /path/to/your/jar-file.jar s3://my-bucket-linhcn3/future-0.0.1-SNAPSHOT.jar
