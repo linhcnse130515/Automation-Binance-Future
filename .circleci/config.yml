@@ -233,7 +233,7 @@ executors:
       - image: amazon/aws-cli:2.x
         auth:
           username: linhcnse130515
-          password: 123456789
+          password: '123456789'
 
 jobs:
   build-and-deploy:
