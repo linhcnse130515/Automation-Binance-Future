@@ -34,7 +34,7 @@ public class BinanceServiceImpl implements BinanceService {
 
     private static final Logger logger = LoggerFactory.getLogger(BinanceServiceImpl.class);
 
-    private static final double PERCENT = 0.1;
+    private static final double PERCENT = 0.05;
 
     private static final int LEVERAGE = 20;
 
@@ -79,6 +79,7 @@ public class BinanceServiceImpl implements BinanceService {
             BigDecimal curQuantity = BigDecimal.ZERO;
             if (Objects.nonNull(positionDTO)) {
                 curQuantity = positionDTO.getPositionAmt();
+                logger.info("Current quantity = {}", curQuantity);
                 // create thread to set leverage = 20 if not have
                 thread = new Thread(() -> {
                     if (positionDTO.getLeverage() != LEVERAGE) {
@@ -90,16 +91,20 @@ public class BinanceServiceImpl implements BinanceService {
             
             if (!currentPrice.equals(BigDecimal.ZERO)) {
                 BigDecimal quantity = balance.multiply(BigDecimal.valueOf(PERCENT * LEVERAGE)).divide(currentPrice, 0, RoundingMode.HALF_UP);
+                logger.info("Expected quantity = {}", quantity);
                 Double topProfitPrice = notificationDTO.getTakeProfit();
                 Double stopLossPrice = notificationDTO.getStopLoss();
 
 
                 if (quantity.compareTo(BigDecimal.ZERO) > 0) {
                     if (notificationDTO.getComment().contains(EXIT_ALERT)) {
+                        logger.info("Close position");
                         this.closeAlert(curQuantity, notificationDTO);
-                    } else if (curQuantity.equals(BigDecimal.ZERO)) {
+                    } else if (curQuantity.compareTo(BigDecimal.ZERO) == 0) {
+                        logger.info("New position");
                         this.setUpNewAlert(quantity, notificationDTO, topProfitPrice, stopLossPrice);
                     } else {
+                        logger.info("Revert position");
                         this.closeAlert(curQuantity, notificationDTO);
                         this.setUpNewAlert(quantity, notificationDTO, topProfitPrice, stopLossPrice);
                     }
@@ -155,7 +160,7 @@ public class BinanceServiceImpl implements BinanceService {
     }
 
     private void setUpNewAlert(BigDecimal quantity, NotificationDTO notificationDTO, Double topProfitPrice, Double stopLossPrice) throws JsonProcessingException {
-        boolean orderSuccess = this.newOrder(quantity, notificationDTO, LIMIT, null, null);
+        boolean orderSuccess = this.newOrder(quantity, notificationDTO, MARKET, null, null);
         if (orderSuccess) {
             orderSuccess = this.newOrder(quantity, notificationDTO, TAKE_PROFIT_MARKET, null, topProfitPrice);
             orderSuccess = orderSuccess && this.newOrder(quantity, notificationDTO, STOP_LOSS_MARKET, null, stopLossPrice);
@@ -249,6 +254,9 @@ public class BinanceServiceImpl implements BinanceService {
                         .findFirst()
                         .orElseThrow(null);
                 if (!Objects.isNull(walletDTO)) {
+                    if (walletDTO.getBalance().multiply(BigDecimal.valueOf(PERCENT)).compareTo(walletDTO.getAvailableBalance()) < 0) {
+                        return walletDTO.getBalance();
+                    }
                     return walletDTO.getAvailableBalance();
                 }
             }
