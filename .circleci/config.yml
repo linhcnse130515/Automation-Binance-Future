@@ -1,28 +1,27 @@
-# version: 2.1
+version: 2.1
 
-# # orbs:
-# #   slack: circleci/slack@4.1
+# orbs:
+#   slack: circleci/slack@4.1
 
-# parameters:
-#   workflow_id:
-#     type: string
-#     default: '${CIRCLE_WORKFLOW_ID:0:7}'
+parameters:
+  workflow_id:
+    type: string
+    default: '${CIRCLE_WORKFLOW_ID:0:7}'
 
-# # commands:
-#   # destroy-environment:
-#   #   description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
-#   #   parameters:
-#   #     workflow_id:
-#   #       type: string
-#   #       # default: ${CIRCLE_WORKFLOW_ID}
-#   #   steps:
-#   #     - run:
-#   #         name: Destroy environments
-#   #         when: on_fail
-#   #         command: |
-#   #           aws cloudformation delete-stack \
-#   #           --stack-name future-backend-<<parameters.workflow_id>>
-#   #           aws s3 rm s3://future-<<parameters.workflow_id>> --recursive
+commands:
+  destroy-environment:
+    description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
+    parameters:
+      workflow_id:
+        type: string
+        # default: ${CIRCLE_WORKFLOW_ID}
+    steps:
+      - run:
+          name: Destroy environments
+          when: on_fail
+          command: |
+            aws cloudformation delete-stack \
+            --stack-name future-backend-<<parameters.workflow_id>>
 
 # executors:
 #   java-executor:
@@ -32,269 +31,261 @@
 #           username: linhcnse130515
 #           password: 123456789
       
-# jobs:
-#   build-backend:
-#     executor: java-executor
-#     steps:
-#       - checkout
-#       - run:
-#           name: Back-end build
-#           command: |
-#             mvn dependency:resolve
-#             mvn clean install
-#   # deploy-infrastructure:
-#   #   docker:
-#   #     - image: amazon/aws-cli
-#   #   steps:
-#   #     - checkout
-#   #     - run: yum install -y tar gzip
-#   #     - run:
-#   #         name: Ensure back-end infrastructure exists
-#   #         command: |
-#   #           aws cloudformation deploy \
-#   #             --template-file .circleci/files/backend.yml \
-#   #             --tags project=your-tag \
-#   #             --stack-name future-backend-${CIRCLE_WORKFLOW_ID:0:7} \
-#   #             --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
-#   #     - run:
-#   #         name: Ensure front-end infrastructure exist
-#   #         command: |
-#   #           aws cloudformation deploy \
-#   #             --template-file .circleci/files/frontend.yml \
-#   #             --tags project=your-tag \
-#   #             --stack-name future-frontend-${CIRCLE_WORKFLOW_ID:0:7} \
-#   #             --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
-#   #     - run:
-#   #         name: Add back-end ip to ansible inventory
-#   #         command: |
-#   #           echo $(aws ec2 describe-instances \
-#   #           --query 'Reservations[*].Instances[*].PublicIpAddress' \
-#   #           --filters Name=tag:aws:cloudformation:stack-name,Values=future-backend-${CIRCLE_WORKFLOW_ID:0:7} \
-#   #           --output text) >> ~/project/.circleci/ansible/inventory.txt
-#   #     - persist_to_workspace:
-#   #         root: ~/
-#   #         paths:
-#   #           - project/.circleci/ansible/inventory.txt
-#   #     - destroy-environment:
-#   #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-#   # configure-infrastructure:
-#   #   docker:
-#   #     - image: python:3.7-alpine3.16
-#   #   steps:
-#   #     - checkout
-#   #     - add_ssh_keys:
-#   #         fingerprints:
-#   #           - 'ec:ee:03:33:13:fc:ea:71:6d:29:46:13:dd:2a:42:36'
-#   #     - run:
-#   #         name: Install dependencies
-#   #         command: |
-#   #           apk add --update --no-cache tar gzip ansible aws-cli
-#   #     - attach_workspace:
-#   #         at: ~/
-#   #     - run:
-#   #         name: Configure server
-#   #         command: |
-#   #           # add environment variables to server
-#   #           echo ENVIRONMENT=production > backend/.env
-#   #           echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> backend/.env
-#   #           echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> backend/.env
-#   #           echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> backend/.env
-#   #           echo TYPEORM_HOST=$TYPEORM_HOST >> backend/.env
-#   #           echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> backend/.env
-#   #           echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> backend/.env
-#   #           echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> backend/.env
-#   #           echo TYPEORM_PORT=$TYPEORM_PORT >> backend/.env
-#   #           echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> backend/.env
-#   #           cat backend/.env
-#   #           cd .circleci/ansible
-#   #           ansible-playbook -i inventory.txt configure-server.yml
-#   #     - persist_to_workspace:
-#   #         root: ~/
-#   #         paths:
-#   #           - project/backend
-#   #     - destroy-environment:
-#   #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-#   # deploy-backend:
-#   #   docker:
-#   #     - image: python:3.7-alpine3.16
-#   #   steps:
-#   #     - checkout
-#   #     - add_ssh_keys:
-#   #         fingerprints:
-#   #           - 'ec:ee:03:33:13:fc:ea:71:6d:29:46:13:dd:2a:42:36'
-#   #     - run:
-#   #         name: Install dependencies
-#   #         command: |
-#   #           apk add --update --no-cache tar gzip nodejs npm aws-cli ansible
-#   #     - restore_cache:
-#   #         keys: [backend-build]
-#   #     - attach_workspace:
-#   #         at: ~/
-#   #     - run:
-#   #         name: Deploy backend
-#   #         command: |
-#   #           cd backend
-#   #           npm install
-#   #           npm run build
-#   #           cd ..
-#   #           tar -C backend -czvf artifact.tar.gz .
-#   #           mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
-#   #           mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
-#   #           cd .circleci/ansible
-#   #           echo "Contents of the inventory.txt file is ------$(cat inventory.txt)"
-#   #           ansible-playbook -i inventory.txt deploy-backend.yml
-#   #     - destroy-environment:
-#   #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-#   #     - revert-migrations:
-#   #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-#   # smoke-test:
-#   #   docker:
-#   #     - image: python:3.7-alpine3.16
-#   #   steps:
-#   #     - checkout
-#   #     - run:
-#   #         name: Install dependencies
-#   #         command: |
-#   #           apk add --update --no-cache curl aws-cli nodejs npm
-#   #     # - attach_workspace:
-#   #     #     at: ~/
-#   #     - run:
-#   #         name: Backend smoke test
-#   #         command: |
-#   #           # export BACKEND_IP=$(tail ~/project/.circleci/ansible/inventory.txt)
-#   #           export BACKEND_IP=$(aws ec2 describe-instances \
-#   #           --query 'Reservations[*].Instances[*].PublicIpAddress' \
-#   #           --filters Name=tag:aws:cloudformation:stack-name,Values=future-backend-${CIRCLE_WORKFLOW_ID:0:7} \
-#   #           --output text)
-#   #           export API_URL="http://${BACKEND_IP}:3030"
-#   #           echo $API_URL
-#   #           if curl "${API_URL}/api/status" | grep "ok"; then return 0; else return 1; fi
-#   #     - run:
-#   #         name: Frontend smoke test.
-#   #         command: |
-#   #           export URL="http://future-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-${AWS_DEFAULT_REGION}.amazonaws.com/#/employees"            
-#   #           echo $URL
-#   #           if curl ${URL} | grep "Welcome"; then return 0; else return 1; fi
-#   #     - destroy-environment:
-#   #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-#   #     - revert-migrations:
-#   #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-#   # cloudfront-update:
-#   #   docker:
-#   #     - image: circleci/node:13.8.0
-#   #   steps:
-#   #     - checkout
-#   #     - run:
-#   #         name: Install dependencies
-#   #         command: |
-#   #           sudo apt install -y tar gzip curl
-#   #           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-#   #           unzip -qq awscliv2.zip
-#   #           sudo ./aws/install
-#   #     - run:
-#   #         name: Update cloudfront distribution
-#   #         command: |
-#   #           export OldWorkflowID=$(aws cloudformation list-exports \
-#   #           --query "Exports[?Name==\`WorkflowID\`].Value" \
-#   #           --no-paginate --output text)
-#   #           aws cloudformation deploy \
-#   #           --template-file .circleci/files/cloudfront.yml \
-#   #           --stack-name InitialStack \
-#   #           --parameter-overrides WorkflowID=${CIRCLE_WORKFLOW_ID:0:7} \
-#   #           --tags project=future
-#   #     - destroy-environment:
-#   #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-#   #     - revert-migrations:
-#   #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
-
-# workflows:
-#   default:
-#     jobs:
-#       - build-backend
-#       # - deploy-infrastructure:
-#       #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-#       #     filters:
-#       #       branches:
-#       #         only: [develop]
-#       # - configure-infrastructure:
-#       #     requires: [deploy-infrastructure]
-#       # - deploy-backend:
-#       #     requires: [run-migrations]
-#       # - smoke-test:
-#       #     requires: [deploy-backend, deploy-frontend]
-#       # - cloudfront-update:
-#       #     requires: [smoke-test]
-
-version: 2.1
-
-# executors:
-#   aws-executor:
-#     docker:
-#       - image: amazon/aws-cli:2.x
-#         auth:
-#           username: linhcnse130515
-#           password: '123456789'
-
 jobs:
-  build-maven:
+  # build-backend:
+  #   executor: java-executor
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Back-end build
+  #         command: |
+  #           mvn dependency:resolve
+  #           mvn clean install
+  deploy-infrastructure:
     docker:
       - image: amazon/aws-cli
     steps:
       - checkout
-      # Build your Java application
+      - run: yum install -y tar gzip
       - run:
-          name: Build
-          command: 
-            yum install -y maven
-            mvn clean install
-  build-and-deploy:
-    docker:
-      - image: amazon/aws-cli
-    steps:
-      - checkout
-
-      # Deploy to EC2 using CloudFormation
-      - run:
-          name: Deploy to EC2 using CloudFormation
+          name: Ensure back-end infrastructure exists
           command: |
-            # Set up AWS credentials
-            echo touch ~/.aws/credentials
-            echo "[default]" > ~/.aws/credentials
-            echo "aws_access_key_id=AKIAS3OTZELDZHZUUJCW" >> ~/.aws/credentials
-            echo "aws_secret_access_key=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" >> ~/.aws/credentials
-
-            # Set up AWS configuration
-            echo touch ~/.aws/config
-            echo "[default]" > ~/.aws/config
-            echo "region=us-east-1" >> ~/.aws/config
-
-            # Package the CloudFormation template
-            aws cloudformation package \
-              --template-file cloudformation.yml \
-              --s3-bucket my-bucket-linhcn3 \
-              --output-template-file packaged-template.yml
-
-            # Deploy the CloudFormation stack
             aws cloudformation deploy \
-              --stack-name my-stack-linhcn3 \
-              --template-file packaged-template.yml \
-              --capabilities CAPABILITY_IAM \
-              --parameter-overrides WorkflowID=1031999\
-                KeyName=future \
-                ApplicationJarUrl=s3://my-bucket-linhcn3/future-0.0.1-SNAPSHOT.jar \
-                ...
-
-            # Retrieve the public IP or DNS of the EC2 instance
-            EC2_PUBLIC_IP=$(aws cloudformation describe-stacks \
-                              --stack-name my-stack-linhcn3 \
-                              --query "Stacks[0].Outputs[?OutputKey=='EC2PublicIP'].OutputValue" \
-                              --output text)
-
-            # SSH into the EC2 instance and start the application
-            ssh -i /path/to/your/key.pem ec2-user@$EC2_PUBLIC_IP "nohup java -jar /path/to/your/jar-file.jar &"
+              --template-file .circleci/files/backend.yml \
+              --tags project=future \
+              --stack-name future-backend-${CIRCLE_WORKFLOW_ID:0:7} \
+              --parameter-overrides ID=${CIRCLE_WORKFLOW_ID:0:7}
+      - run:
+          name: Add back-end ip to ansible inventory
+          command: |
+            echo $(aws ec2 describe-instances \
+            --query 'Reservations[*].Instances[*].PublicIpAddress' \
+            --filters Name=tag:aws:cloudformation:stack-name,Values=future-backend-${CIRCLE_WORKFLOW_ID:0:7} \
+            --output text) >> ~/project/.circleci/ansible/inventory.txt
+      - persist_to_workspace:
+          root: ~/
+          paths:
+            - project/.circleci/ansible/inventory.txt
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  # configure-infrastructure:
+  #   docker:
+  #     - image: python:3.7-alpine3.16
+  #   steps:
+  #     - checkout
+  #     - add_ssh_keys:
+  #         fingerprints:
+  #           - 'ec:ee:03:33:13:fc:ea:71:6d:29:46:13:dd:2a:42:36'
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           apk add --update --no-cache tar gzip ansible aws-cli
+  #     - attach_workspace:
+  #         at: ~/
+  #     - run:
+  #         name: Configure server
+  #         command: |
+  #           # add environment variables to server
+  #           echo ENVIRONMENT=production > backend/.env
+  #           echo TYPEORM_CONNECTION=$TYPEORM_CONNECTION >> backend/.env
+  #           echo TYPEORM_DATABASE=$TYPEORM_DATABASE >> backend/.env
+  #           echo TYPEORM_ENTITIES=$TYPEORM_ENTITIES >> backend/.env
+  #           echo TYPEORM_HOST=$TYPEORM_HOST >> backend/.env
+  #           echo TYPEORM_MIGRATIONS=$TYPEORM_MIGRATIONS >> backend/.env
+  #           echo TYPEORM_MIGRATIONS_DIR=$TYPEORM_MIGRATIONS_DIR >> backend/.env
+  #           echo TYPEORM_PASSWORD=$TYPEORM_PASSWORD >> backend/.env
+  #           echo TYPEORM_PORT=$TYPEORM_PORT >> backend/.env
+  #           echo TYPEORM_USERNAME=$TYPEORM_USERNAME >> backend/.env
+  #           cat backend/.env
+  #           cd .circleci/ansible
+  #           ansible-playbook -i inventory.txt configure-server.yml
+  #     - persist_to_workspace:
+  #         root: ~/
+  #         paths:
+  #           - project/backend
+  #     - destroy-environment:
+  #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  # deploy-backend:
+  #   docker:
+  #     - image: python:3.7-alpine3.16
+  #   steps:
+  #     - checkout
+  #     - add_ssh_keys:
+  #         fingerprints:
+  #           - 'ec:ee:03:33:13:fc:ea:71:6d:29:46:13:dd:2a:42:36'
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           apk add --update --no-cache tar gzip nodejs npm aws-cli ansible
+  #     - restore_cache:
+  #         keys: [backend-build]
+  #     - attach_workspace:
+  #         at: ~/
+  #     - run:
+  #         name: Deploy backend
+  #         command: |
+  #           cd backend
+  #           npm install
+  #           npm run build
+  #           cd ..
+  #           tar -C backend -czvf artifact.tar.gz .
+  #           mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+  #           mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
+  #           cd .circleci/ansible
+  #           echo "Contents of the inventory.txt file is ------$(cat inventory.txt)"
+  #           ansible-playbook -i inventory.txt deploy-backend.yml
+  #     - destroy-environment:
+  #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  #     - revert-migrations:
+  #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  # smoke-test:
+  #   docker:
+  #     - image: python:3.7-alpine3.16
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           apk add --update --no-cache curl aws-cli nodejs npm
+  #     # - attach_workspace:
+  #     #     at: ~/
+  #     - run:
+  #         name: Backend smoke test
+  #         command: |
+  #           # export BACKEND_IP=$(tail ~/project/.circleci/ansible/inventory.txt)
+  #           export BACKEND_IP=$(aws ec2 describe-instances \
+  #           --query 'Reservations[*].Instances[*].PublicIpAddress' \
+  #           --filters Name=tag:aws:cloudformation:stack-name,Values=future-backend-${CIRCLE_WORKFLOW_ID:0:7} \
+  #           --output text)
+  #           export API_URL="http://${BACKEND_IP}:3030"
+  #           echo $API_URL
+  #           if curl "${API_URL}/api/status" | grep "ok"; then return 0; else return 1; fi
+  #     - run:
+  #         name: Frontend smoke test.
+  #         command: |
+  #           export URL="http://future-${CIRCLE_WORKFLOW_ID:0:7}.s3-website-${AWS_DEFAULT_REGION}.amazonaws.com/#/employees"            
+  #           echo $URL
+  #           if curl ${URL} | grep "Welcome"; then return 0; else return 1; fi
+  #     - destroy-environment:
+  #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  #     - revert-migrations:
+  #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  # cloudfront-update:
+  #   docker:
+  #     - image: circleci/node:13.8.0
+  #   steps:
+  #     - checkout
+  #     - run:
+  #         name: Install dependencies
+  #         command: |
+  #           sudo apt install -y tar gzip curl
+  #           curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+  #           unzip -qq awscliv2.zip
+  #           sudo ./aws/install
+  #     - run:
+  #         name: Update cloudfront distribution
+  #         command: |
+  #           export OldWorkflowID=$(aws cloudformation list-exports \
+  #           --query "Exports[?Name==\`WorkflowID\`].Value" \
+  #           --no-paginate --output text)
+  #           aws cloudformation deploy \
+  #           --template-file .circleci/files/cloudfront.yml \
+  #           --stack-name InitialStack \
+  #           --parameter-overrides WorkflowID=${CIRCLE_WORKFLOW_ID:0:7} \
+  #           --tags project=future
+  #     - destroy-environment:
+  #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+  #     - revert-migrations:
+  #         workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
 workflows:
   default:
     jobs:
-      - build-maven
-      - build-and-deploy
+      - build-backend
+      # - deploy-infrastructure:
+      #     requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+      #     filters:
+      #       branches:
+      #         only: [develop]
+      # - configure-infrastructure:
+      #     requires: [deploy-infrastructure]
+      # - deploy-backend:
+      #     requires: [run-migrations]
+      # - smoke-test:
+      #     requires: [deploy-backend, deploy-frontend]
+      # - cloudfront-update:
+      #     requires: [smoke-test]
+
+# version: 2.1
+
+# # executors:
+# #   aws-executor:
+# #     docker:
+# #       - image: amazon/aws-cli:2.x
+# #         auth:
+# #           username: linhcnse130515
+# #           password: '123456789'
+
+# jobs:
+#   build-maven:
+#     docker:
+#       - image: amazon/aws-cli
+#     steps:
+#       - checkout
+#       # Build your Java application
+#       - run:
+#           name: Build
+#           command: 
+#             yum install -y maven
+#             mvn clean install
+#   build-and-deploy:
+#     docker:
+#       - image: amazon/aws-cli
+#     steps:
+#       - checkout
+
+#       # Deploy to EC2 using CloudFormation
+#       - run:
+#           name: Deploy to EC2 using CloudFormation
+#           command: |
+#             # Set up AWS credentials
+#             echo touch ~/.aws/credentials
+#             echo "[default]" > ~/.aws/credentials
+#             echo "aws_access_key_id=AKIAS3OTZELDZHZUUJCW" >> ~/.aws/credentials
+#             echo "aws_secret_access_key=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" >> ~/.aws/credentials
+
+#             # Set up AWS configuration
+#             echo touch ~/.aws/config
+#             echo "[default]" > ~/.aws/config
+#             echo "region=us-east-1" >> ~/.aws/config
+
+#             # Package the CloudFormation template
+#             aws cloudformation package \
+#               --template-file cloudformation.yml \
+#               --s3-bucket my-bucket-linhcn3 \
+#               --output-template-file packaged-template.yml
+
+#             # Deploy the CloudFormation stack
+#             aws cloudformation deploy \
+#               --stack-name my-stack-linhcn3 \
+#               --template-file packaged-template.yml \
+#               --capabilities CAPABILITY_IAM \
+#               --parameter-overrides WorkflowID=1031999\
+#                 KeyName=future \
+#                 ApplicationJarUrl=s3://my-bucket-linhcn3/future-0.0.1-SNAPSHOT.jar \
+#                 ...
+
+#             # Retrieve the public IP or DNS of the EC2 instance
+#             EC2_PUBLIC_IP=$(aws cloudformation describe-stacks \
+#                               --stack-name my-stack-linhcn3 \
+#                               --query "Stacks[0].Outputs[?OutputKey=='EC2PublicIP'].OutputValue" \
+#                               --output text)
+
+#             # SSH into the EC2 instance and start the application
+#             ssh -i /path/to/your/key.pem ec2-user@$EC2_PUBLIC_IP "nohup java -jar /path/to/your/jar-file.jar &"
+
+# workflows:
+#   default:
+#     jobs:
+#       - build-maven
+#       - build-and-deploy
