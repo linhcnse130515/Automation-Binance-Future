@@ -28,6 +28,7 @@ executors:
   java-executor:
     docker:
       - image: my-jdk/openjdk:17-jdk
+      
 jobs:
   build-backend:
     executor: java-executor
