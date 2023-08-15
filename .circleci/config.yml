@@ -286,7 +286,5 @@ jobs:
 
 workflows:
   default:
-    executor: 
-      - aws-executor
     jobs:
       - build-and-deploy
