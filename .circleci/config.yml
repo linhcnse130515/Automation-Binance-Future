@@ -28,6 +28,9 @@ executors:
   java-executor:
     docker:
       - image: my-jdk/openjdk:17-jdk
+        auth:
+          username: linhcnse130515
+          password: 123456789
       
 jobs:
   build-backend:
