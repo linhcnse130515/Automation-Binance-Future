@@ -227,17 +227,18 @@
 
 version: 2.1
 
-executors:
-  aws-executor:
-    docker:
-      - image: amazon/aws-cli:2.x
-        auth:
-          username: linhcnse130515
-          password: '123456789'
+# executors:
+#   aws-executor:
+#     docker:
+#       - image: amazon/aws-cli:2.x
+#         auth:
+#           username: linhcnse130515
+#           password: '123456789'
 
 jobs:
   build-and-deploy:
-    executor: aws-executor
+    docker:
+      - image: amazon/aws-cli
     steps:
       - checkout
 
