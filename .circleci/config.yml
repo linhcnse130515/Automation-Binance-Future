@@ -231,6 +231,9 @@ executors:
   aws-executor:
     docker:
       - image: amazon/aws-cli:2.x
+        auth:
+          username: linhcnse130515
+          password: 123456789
 
 jobs:
   build-and-deploy:
@@ -279,7 +282,7 @@ jobs:
                               --output text)
 
             # SSH into the EC2 instance and start the application
-            ssh -i /path/to/your/key.pem ec2-user@$EC2_PUBLIC_IP "nohup java -jar future-0.0.1-SNAPSHOT.jar &"
+            ssh -i /path/to/your/key.pem ec2-user@$EC2_PUBLIC_IP "nohup java -jar /path/to/your/jar-file.jar &"
 
 workflows:
   default:
