@@ -236,18 +236,22 @@ version: 2.1
 #           password: '123456789'
 
 jobs:
-  build-and-deploy:
+  build-maven:
     docker:
       - image: amazon/aws-cli
     steps:
       - checkout
-
       # Build your Java application
       - run:
           name: Build
           command: 
             yum install -y maven
             mvn clean install
+  build-and-deploy:
+    docker:
+      - image: amazon/aws-cli
+    steps:
+      - checkout
 
       # Deploy to EC2 using CloudFormation
       - run:
@@ -290,4 +294,5 @@ jobs:
 workflows:
   default:
     jobs:
+      - build-maven
       - build-and-deploy
