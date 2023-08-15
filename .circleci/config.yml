@@ -8,7 +8,7 @@ parameters:
     type: string
     default: '${CIRCLE_WORKFLOW_ID:0:7}'
 
-commands:
+# commands:
   # destroy-environment:
   #   description: Destroy back-end and front-end cloudformation stacks given a workflow ID.
   #   parameters:
@@ -24,6 +24,7 @@ commands:
   #           --stack-name future-backend-<<parameters.workflow_id>>
   #           aws s3 rm s3://future-<<parameters.workflow_id>> --recursive
 
+jobs:
   build-backend:
     docker:
       - image: circleci/openjdk:17-jdk
