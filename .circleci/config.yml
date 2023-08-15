@@ -280,3 +280,8 @@ jobs:
 
             # SSH into the EC2 instance and start the application
             ssh -i /path/to/your/key.pem ec2-user@$EC2_PUBLIC_IP "nohup java -jar future-0.0.1-SNAPSHOT.jar &"
+
+workflows:
+  default:
+    jobs:
+      - build-and-deploy
